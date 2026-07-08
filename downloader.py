@@ -100,4 +100,11 @@ def download_format(download_id, url, format_id):
 
         filename = ydl.prepare_filename(info)
 
+        update_download(
+    download_id,
+    filename=filename,
+    progress=100,
+    status="finished",
+    )
+
     return filename
