@@ -71,7 +71,9 @@ button.addEventListener("click", async () => {
                 <b>${f.resolution || "Unknown"}</b>
                 ${f.ext}
                 (${bytesToSize(f.filesize)})
-                <button disabled>Download</button>
+                <button onclick="downloadFile('${url}','${f.id}')">
+    Download
+</button>
             </div>
         `;
     }
@@ -79,3 +81,40 @@ button.addEventListener("click", async () => {
     document.getElementById("result").innerHTML = html;
 
 });
+async function downloadFile(url, formatId){
+
+    const response = await fetch("/download",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+
+            url:url,
+
+            format_id:formatId
+
+        })
+
+    });
+
+    const blob = await response.blob();
+
+    const downloadUrl = window.URL.createObjectURL(blob);
+
+    const a=document.createElement("a");
+
+    a.href=downloadUrl;
+
+    a.download="download";
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    a.remove();
+
+}

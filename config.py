@@ -1,0 +1,7 @@
+DOWNLOAD_FOLDER = "downloads"
+
+AUTO_DELETE_AFTER = 3600
+
+HOST = "0.0.0.0"
+
+PORT = 8000

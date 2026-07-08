@@ -1,0 +1,14 @@
+from download_manager import *
+
+id = create_download(
+    "hello",
+    "18"
+)
+
+job = get_download(id)
+
+print(job)
+
+print(job.progress)
+
+print(job.status)
