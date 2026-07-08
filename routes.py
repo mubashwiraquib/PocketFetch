@@ -1,11 +1,16 @@
 from fastapi import APIRouter
-from downloader import analyze_url
-from models import URLRequest, AnalyzeResponse
-from downloader import analyze_url, download_format
-from models import DownloadRequest
 from fastapi.responses import FileResponse
-from download_manager import create_download
-from download_manager import get_download
+
+from downloader import analyze_url, start_download
+from download_manager import (
+    create_download,
+    get_download,
+)
+from models import (
+    URLRequest,
+    DownloadRequest,
+    AnalyzeResponse,
+)
 
 router = APIRouter()
 
@@ -14,6 +19,7 @@ router = APIRouter()
 async def analyze(data: URLRequest):
 
     try:
+
         info = analyze_url(data.url)
 
         return AnalyzeResponse(
@@ -21,49 +27,78 @@ async def analyze(data: URLRequest):
             title=info["title"],
             thumbnail=info["thumbnail"],
             duration=info["duration"],
-            formats=info["formats"]
+            formats=info["formats"],
         )
 
     except Exception as e:
+
         return AnalyzeResponse(
             success=False,
-            error=str(e)
+            error=str(e),
         )
+
+
 @router.post("/download")
 async def download(data: DownloadRequest):
 
-    try:
+    job_id = create_download(
+        data.url,
+        data.format_id,
+    )
 
-        file_path = download_format(
-            data.url,
-            data.format_id
-        )
+    job = get_download(job_id)
 
-        return FileResponse(
-            file_path,
-            filename=file_path.split("\\")[-1]
-        )
+    start_download(job)
 
-    except Exception as e:
+    return {
+        "download_id": job.id,
+        "status": job.status,
+    }
+
+
+@router.get("/progress/{download_id}")
+async def progress(download_id: str):
+
+    job = get_download(download_id)
+
+    if job is None:
 
         return {
             "success": False,
-            "error": str(e)
+            "error": "Download not found",
         }
-@router.post("/download")
-
-async def start_download(data: DownloadRequest):
-
-    download_id = create_download(
-        data.url,
-        data.format_id
-    )
 
     return {
-        "download_id": download_id
+        "id": job.id,
+        "progress": job.progress,
+        "speed": job.speed,
+        "eta": job.eta,
+        "status": job.status,
+        "filename": job.filename,
+        "error": job.error,
     }
-@router.get("/progress/{download_id}")
 
-async def progress(download_id):
 
-    return get_download(download_id)
+@router.get("/file/{download_id}")
+async def get_file(download_id: str):
+
+    job = get_download(download_id)
+
+    if job is None:
+
+        return {
+            "success": False,
+            "error": "Download not found",
+        }
+
+    if job.filename is None:
+
+        return {
+            "success": False,
+            "error": "Download not finished",
+        }
+
+    return FileResponse(
+        path=job.filename,
+        filename=job.filename.split("\\")[-1],
+    )

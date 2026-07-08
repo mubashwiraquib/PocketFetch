@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass
@@ -21,3 +22,5 @@ class DownloadJob:
     filename: str | None = None
 
     error: str | None = None
+
+    created_at: datetime = datetime.now()

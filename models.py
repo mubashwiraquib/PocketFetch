@@ -34,3 +34,17 @@ class AnalyzeResponse(BaseModel):
     formats: list[MediaFormat] = []
 
     error: str | None = None
+
+class ProgressResponse(BaseModel):
+
+    progress: float
+
+    speed: float
+
+    eta: int
+
+    status: str
+
+    filename: str | None = None
+
+    error: str | None = None

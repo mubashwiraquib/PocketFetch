@@ -53,3 +53,8 @@ def delete_download(download_id):
     with lock:
 
         downloads.pop(download_id, None)
+def list_downloads():
+
+    with lock:
+
+        return list(downloads.values())

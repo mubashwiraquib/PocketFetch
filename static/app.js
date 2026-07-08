@@ -1,17 +1,31 @@
 function bytesToSize(bytes) {
-    if (!bytes) return "Unknown";
 
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    if (!bytes)
+        return "Unknown";
 
-    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + sizes[i];
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+
+    const i = Math.floor(
+        Math.log(bytes) / Math.log(1024)
+    );
+
+    return (
+        bytes / Math.pow(1024, i)
+    ).toFixed(1) + " " + sizes[i];
 }
 
+
 function formatDuration(seconds) {
-    if (!seconds) return "Unknown";
+
+    if (!seconds)
+        return "Unknown";
 
     const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
+
+    const m = Math.floor(
+        (seconds % 3600) / 60
+    );
+
     const s = seconds % 60;
 
     if (h > 0)
@@ -20,101 +34,229 @@ function formatDuration(seconds) {
     return `${m}m ${s}s`;
 }
 
-const button = document.getElementById("analyzeBtn");
 
-button.addEventListener("click", async () => {
+async function analyze() {
 
-    const url = document.getElementById("url").value.trim();
+    const url = document
+        .getElementById("url")
+        .value
+        .trim();
 
     if (!url) {
+
         alert("Please enter a URL.");
+
         return;
     }
 
-    document.getElementById("result").innerHTML = "<p>Analyzing...</p>";
+    document.getElementById("result").innerHTML =
+        "<p>Analyzing...</p>";
 
     const response = await fetch("/analyze", {
+
         method: "POST",
+
         headers: {
+
             "Content-Type": "application/json"
+
         },
+
         body: JSON.stringify({
+
             url: url
+
         })
+
     });
 
     const data = await response.json();
 
     if (!data.success) {
+
         document.getElementById("result").innerHTML =
             `<p>${data.error}</p>`;
+
         return;
     }
 
     let html = `
-        <h2>${data.title}</h2>
 
-        <img src="${data.thumbnail}" alt="Thumbnail">
+<h2>${data.title}</h2>
 
-        <div class="info">
-            <strong>Duration:</strong>
-            ${formatDuration(data.duration)}
-        </div>
+<img
+src="${data.thumbnail}"
+style="
+max-width:300px;
+border-radius:12px;
+">
 
-        <h3>Formats</h3>
-    `;
+<p>
+
+Duration:
+
+${formatDuration(data.duration)}
+
+</p>
+
+<h3>Available Formats</h3>
+
+`;
 
     for (const f of data.formats) {
 
         html += `
-            <div class="info">
-                <b>${f.resolution || "Unknown"}</b>
-                ${f.ext}
-                (${bytesToSize(f.filesize)})
-                <button onclick="downloadFile('${url}','${f.id}')">
-    Download
+
+<div class="info">
+
+<b>${f.resolution}</b>
+
+${f.ext}
+
+(${bytesToSize(f.filesize)})
+
+<button
+onclick="downloadMedia(
+'${url}',
+'${f.id}'
+)">
+Download
 </button>
-            </div>
-        `;
+
+</div>
+
+`;
     }
+
+    html += `
+
+<div id="progressArea"></div>
+
+`;
 
     document.getElementById("result").innerHTML = html;
 
-});
-async function downloadFile(url, formatId){
+}
+async function downloadMedia(url, formatId) {
 
-    const response = await fetch("/download",{
+    const response = await fetch("/download", {
 
-        method:"POST",
+        method: "POST",
 
-        headers:{
-            "Content-Type":"application/json"
+        headers: {
+            "Content-Type": "application/json"
         },
 
-        body:JSON.stringify({
+        body: JSON.stringify({
 
-            url:url,
+            url: url,
 
-            format_id:formatId
+            format_id: formatId
 
         })
 
     });
 
-    const blob = await response.blob();
+    const data = await response.json();
 
-    const downloadUrl = window.URL.createObjectURL(blob);
+    if (!data.download_id) {
 
-    const a=document.createElement("a");
+        alert("Unable to start download.");
 
-    a.href=downloadUrl;
+        return;
+    }
 
-    a.download="download";
+    document.getElementById("progressArea").innerHTML = `
 
-    document.body.appendChild(a);
+<h3>Downloading...</h3>
 
-    a.click();
+<progress
+id="progressBar"
+value="0"
+max="100"
+style="width:100%;">
+</progress>
 
-    a.remove();
+<p id="progressText">
+0%
+</p>
+
+<p id="speedText"></p>
+
+<p id="etaText"></p>
+
+`;
+
+    checkProgress(data.download_id);
 
 }
+
+
+async function checkProgress(downloadId) {
+
+    const timer = setInterval(async () => {
+
+        const response = await fetch(
+
+            "/progress/" + downloadId
+
+        );
+
+        const job = await response.json();
+
+        document.getElementById("progressBar").value =
+            job.progress;
+
+        document.getElementById("progressText").innerHTML =
+            job.progress.toFixed(1) + "%";
+
+        document.getElementById("speedText").innerHTML =
+            "Speed: " + bytesToSize(job.speed) + "/s";
+
+        document.getElementById("etaText").innerHTML =
+            "ETA: " + job.eta + " sec";
+
+        if (job.status === "finished") {
+
+            clearInterval(timer);
+
+            document.getElementById("progressText").innerHTML =
+                "Download Completed!";
+
+            window.location =
+                "/file/" + downloadId;
+
+        }
+
+        if (job.status === "error") {
+
+            clearInterval(timer);
+
+            alert(job.error);
+
+        }
+
+    }, 1000);
+
+}
+
+
+document.addEventListener(
+
+    "DOMContentLoaded",
+
+    () => {
+
+        const analyzeButton = document.getElementById("analyzeBtn");
+
+        analyzeButton.addEventListener(
+
+            "click",
+
+            analyze
+
+        );
+
+    }
+
+);
