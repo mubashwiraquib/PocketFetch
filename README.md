@@ -1,26 +1,30 @@
 # PocketFetch
 
-A personal web-based media downloader built with FastAPI and yt-dlp.
+A self-hosted personal media downloader built with FastAPI.
 
 ## Features
 
 - Analyze supported URLs
-- View available formats
-- Background downloads
+- Download media
+- Queue downloads
 - Live progress
-- Installable PWA (planned)
+- Installable PWA
 
 ## Tech Stack
 
 - FastAPI
-- Python
-- JavaScript
-- HTML/CSS
 - yt-dlp
+- HTML
+- CSS
+- JavaScript
+- Docker
 
-## Run
+## Screenshots
 
-```bash
+...
+
+## Installation
+
 pip install -r requirements.txt
+
 python -m uvicorn main:app --reload
-```
