@@ -1,0 +1,21 @@
+from pydantic import BaseModel
+
+
+class URLRequest(BaseModel):
+    url: str
+
+
+class MediaFormat(BaseModel):
+    id: str | None = None
+    resolution: str | None = None
+    ext: str | None = None
+    filesize: int | None = None
+
+
+class AnalyzeResponse(BaseModel):
+    success: bool
+    title: str | None = None
+    thumbnail: str | None = None
+    duration: int | None = None
+    formats: list[MediaFormat] = []
+    error: str | None = None
