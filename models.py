@@ -31,6 +31,8 @@ class AnalyzeResponse(BaseModel):
 
     duration: int | None = None
 
-    formats: list[MediaFormat] = []
+    video_formats: list[MediaFormat] = []
+
+    audio_formats: list[MediaFormat] = []
 
     error: str | None = None

@@ -17,19 +17,45 @@ def analyze_url(url):
 
         info = ydl.extract_info(url, download=False)
 
-    formats = []
+    video_formats = []
+
+    audio_formats = []
 
     for f in info.get("formats", []):
 
-        if f.get("vcodec") == "none":
-            continue
+        item = {
 
-        formats.append({
             "id": f.get("format_id"),
-            "resolution": f.get("resolution"),
+
             "ext": f.get("ext"),
-            "filesize": f.get("filesize")
-        })
+
+            "filesize": f.get("filesize"),
+
+            "resolution": (
+                f.get("resolution")
+                or (
+                    f"{f.get('height')}p"
+                    if f.get("height")
+                    else "Audio"
+                )
+            )
+
+        }
+
+        if (
+             f.get("vcodec") == "none"
+            and f.get("acodec") != "none"
+            and f.get("ext") != "mhtml"
+             ):
+
+           audio_formats.append(item)
+
+        elif (
+        f.get("vcodec") != "none"
+        and f.get("ext") != "mhtml"
+        ):
+
+           video_formats.append(item)
 
     return {
 
@@ -39,7 +65,9 @@ def analyze_url(url):
 
         "duration": info.get("duration"),
 
-        "formats": formats
+        "video_formats": video_formats,
+
+        "audio_formats": audio_formats
 
     }
 
@@ -76,7 +104,7 @@ def progress_hook(download_id):
             update_download(
                 download_id,
                 progress=100,
-                status="finished"
+                status="processing"
             )
 
     return hook
@@ -96,15 +124,19 @@ def download_format(download_id, url, format_id):
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
-        info = ydl.extract_info(url, download=True)
+     info = ydl.extract_info(url, download=True)
 
-        filename = ydl.prepare_filename(info)
+    filename = ydl.prepare_filename(info)
 
-        update_download(
-    download_id,
-    filename=filename,
-    progress=100,
-    status="finished",
+    print("DEBUG:", filename)
+
+    update_download(
+        download_id,
+        filename=filename,
+        progress=100,
+        status="finished",
     )
+
+    print("DEBUG: status updated")
 
     return filename

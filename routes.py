@@ -25,12 +25,13 @@ async def analyze(data: URLRequest):
         info = analyze_url(data.url)
 
         return AnalyzeResponse(
-            success=True,
-            title=info["title"],
-            thumbnail=info["thumbnail"],
-            duration=info["duration"],
-            formats=info["formats"],
-        )
+    success=True,
+    title=info["title"],
+    thumbnail=info["thumbnail"],
+    duration=info["duration"],
+    video_formats=info["video_formats"],
+    audio_formats=info["audio_formats"]
+)
 
     except Exception as e:
 

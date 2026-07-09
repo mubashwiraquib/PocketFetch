@@ -74,36 +74,30 @@ async function analyze() {
 
 `;
 
-    const response = await fetch(
-        "/analyze",
-        {
+    const response = await fetch("/analyze", {
 
-            method: "POST",
+        method: "POST",
 
-            headers: {
+        headers: {
 
-                "Content-Type":
-                "application/json"
+            "Content-Type":
+            "application/json"
 
-            },
+        },
 
-            body: JSON.stringify({
+        body: JSON.stringify({
 
-                url: url
+            url: url
 
-            })
+        })
 
-        }
-    );
+    });
 
-    const data =
-        await response.json();
+    const data = await response.json();
 
     if (!data.success) {
 
-        document.getElementById(
-            "result"
-        ).innerHTML = `
+        document.getElementById("result").innerHTML = `
 
 <div class="error">
 
@@ -122,12 +116,8 @@ ${data.error}
 <div class="video-card">
 
 <img
-
 class="thumbnail"
-
-src="${data.thumbnail}"
-
->
+src="${data.thumbnail}">
 
 <h2>
 
@@ -137,21 +127,19 @@ ${data.title}
 
 <p class="duration">
 
-⏱
-
-${formatDuration(data.duration)}
+⏱ ${formatDuration(data.duration)}
 
 </p>
 
 <h3>
 
-Available Formats
+🎥 Video
 
 </h3>
 
 `;
 
-    for (const f of data.formats) {
+    for (const f of data.video_formats) {
 
         html += `
 
@@ -161,9 +149,7 @@ Available Formats
 
 <div class="resolution">
 
-🎥
-
-${f.resolution}
+🎥 ${f.resolution}
 
 </div>
 
@@ -203,6 +189,63 @@ onclick="downloadFile(
 
     html += `
 
+<h3 style="margin-top:35px;">
+
+🎵 Audio
+
+</h3>
+
+`;
+for (const f of data.audio_formats) {
+
+    html += `
+
+<div class="format-card">
+
+<div class="format-left">
+
+<div class="resolution">
+
+🎵 Audio
+
+</div>
+
+<div class="details">
+
+${f.ext.toUpperCase()}
+
+•
+
+${bytesToSize(f.filesize)}
+
+</div>
+
+</div>
+
+<button
+
+onclick="downloadFile(
+
+'${url}',
+
+'${f.id}'
+
+)"
+
+>
+
+⬇ Download
+
+</button>
+
+</div>
+
+`;
+
+}
+
+html += `
+
 <div id="progressArea">
 
 </div>
@@ -211,11 +254,11 @@ onclick="downloadFile(
 
 `;
 
-    document.getElementById(
-        "result"
-    ).innerHTML = html;
+document.getElementById("result").innerHTML = html;
 
 }
+
+
 async function downloadFile(url, formatId) {
 
     const response = await fetch("/download", {
@@ -223,7 +266,9 @@ async function downloadFile(url, formatId) {
         method: "POST",
 
         headers: {
+
             "Content-Type": "application/json"
+
         },
 
         body: JSON.stringify({
@@ -291,95 +336,136 @@ ETA: -
     checkProgress(data.download_id);
 
 }
-
-
 async function checkProgress(downloadId) {
 
     const timer = setInterval(async () => {
 
-        const response = await fetch(
+        try {
 
-            "/progress/" + downloadId
+            const response = await fetch(
+                "/progress/" + downloadId
+            );
 
-        );
+            const job = await response.json();
 
-        const job = await response.json();
+            if (!job) {
 
-        if (!job) {
+                clearInterval(timer);
 
-            clearInterval(timer);
+                return;
 
-            return;
+            }
+
+            const progressBar =
+                document.getElementById("progressBar");
+
+            if (progressBar) {
+
+                progressBar.value = job.progress;
+
+            }
+
+            const progressText =
+                document.getElementById("progressText");
+
+            if (progressText) {
+
+                progressText.innerHTML =
+                    job.progress.toFixed(1) + "%";
+
+            }
+
+            const speedText =
+                document.getElementById("speedText");
+
+            if (speedText) {
+
+                speedText.innerHTML =
+                    "Speed: " +
+                    bytesToSize(job.speed) +
+                    "/s";
+
+            }
+
+            const etaText =
+                document.getElementById("etaText");
+
+            if (etaText) {
+
+                etaText.innerHTML =
+                    "ETA: " +
+                    job.eta +
+                    " sec";
+
+            }
+
+            if (job.status === "finished") {
+
+                clearInterval(timer);
+
+                if (progressText) {
+
+                    progressText.innerHTML =
+                        "✅ Download Complete";
+
+                }
+
+                window.location =
+                    "/file/" + downloadId;
+
+            }
+
+            if (job.status === "error") {
+
+                clearInterval(timer);
+
+                alert(job.error);
+
+            }
 
         }
 
-        const bar = document.getElementById("progressBar");
-
-        if (bar)
-            bar.value = job.progress;
-
-        const progress = document.getElementById("progressText");
-
-        if (progress)
-            progress.innerHTML =
-                job.progress.toFixed(1) + "%";
-
-        const speed = document.getElementById("speedText");
-
-        if (speed)
-            speed.innerHTML =
-                "Speed: " +
-                bytesToSize(job.speed) +
-                "/s";
-
-        const eta = document.getElementById("etaText");
-
-        if (eta)
-            eta.innerHTML =
-                "ETA: " +
-                job.eta +
-                " sec";
-
-        if (job.status === "finished") {
+        catch (err) {
 
             clearInterval(timer);
 
-            if (progress)
-                progress.innerHTML =
-                    "✅ Download Complete";
-
-            window.location =
-                "/file/" + downloadId;
-
-        }
-
-        if (job.status === "error") {
-
-            clearInterval(timer);
-
-            alert(job.error);
+            console.error(err);
 
         }
 
     }, 1000);
 
 }
-document.addEventListener("DOMContentLoaded", () => {
 
-    const analyzeButton = document.getElementById("analyzeBtn");
 
-    analyzeButton.addEventListener("click", analyze);
 
-    const urlInput = document.getElementById("url");
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
 
-    urlInput.addEventListener("keypress", (event) => {
+        const analyzeButton =
+            document.getElementById("analyzeBtn");
 
-        if (event.key === "Enter") {
+        analyzeButton.addEventListener(
+            "click",
+            analyze
+        );
 
-            analyze();
+        const urlInput =
+            document.getElementById("url");
 
-        }
+        urlInput.addEventListener(
+            "keypress",
+            (event) => {
 
-    });
+                if (event.key === "Enter") {
 
-});
+                    analyze();
+
+                }
+
+            }
+        );
+
+    }
+);
